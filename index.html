@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Crypto Intelligence Dashboard</title>
+<title>Ultra Crypto Terminal</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{
     margin:0;
     font-family:Arial;
-    background:#070a12;
+    background:#050814;
     color:white;
 }
 
@@ -19,14 +19,18 @@ body{
     font-weight:bold;
 }
 
-.container{
-    padding:10px;
+.sub{
+    text-align:center;
+    font-size:12px;
+    opacity:0.7;
 }
 
+.container{padding:10px;}
+
 .card{
-    background:#121a2e;
     margin:10px 0;
     padding:12px;
+    background:#121a2e;
     border-radius:12px;
     border:1px solid #1f2a44;
 }
@@ -35,7 +39,7 @@ body{
 .mid{border-left:5px solid #ffb020;}
 .low{border-left:5px solid #2dd4bf;}
 
-.small{font-size:12px; opacity:0.8;}
+.small{font-size:12px;opacity:0.8;}
 
 .badge{
     display:inline-block;
@@ -54,152 +58,101 @@ button{
     font-weight:bold;
 }
 
-.center{
-    text-align:center;
-    padding:10px;
+.center{text-align:center;padding:10px}
+
+.bar{
+    height:6px;
+    background:#1f2a44;
+    border-radius:5px;
+    margin-top:8px;
+}
+
+.bar-fill{
+    height:6px;
+    background:linear-gradient(90deg,#00ff99,#ff3b3b);
 }
 </style>
 </head>
 
 <body>
 
-<div class="header">
-🚀 Crypto Intelligence Dashboard
-</div>
+<div class="header">🚀 ULTRA CRYPTO TERMINAL</div>
+<div class="sub">Live Market • Momentum • Pump Signals</div>
 
 <div class="center">
 <button onclick="load()">SCAN MARKET</button>
 </div>
 
 <div id="out" class="container"></div>
+
 <script>
 
-function score(volume, change){
+/* SMART SCORING */
+function score(v,c){
+    let s=0;
 
-    let s = 0;
+    if(v>1000000000) s+=50;
+    else if(v>200000000) s+=30;
+    else s+=10;
 
-    if(volume > 8000000) s += 45;
-    else if(volume > 2000000) s += 30;
-    else s += 10;
+    if(c>50) s+=50;
+    else if(c>20) s+=30;
+    else s+=10;
 
-    if(change > 30) s += 45;
-    else if(change > 10) s += 25;
-    else s += 10;
-
-    return Math.min(s, 100);
+    return Math.min(s,100);
 }
 
 function label(s){
-    if(s >= 75) return ["🚨 BREAKOUT ZONE", "high"];
-    if(s >= 45) return ["⚠️ WATCH ZONE", "mid"];
-    return ["👀 NORMAL", "low"];
+    if(s>80) return ["🚨 PUMP ZONE","high"];
+    if(s>50) return ["⚠️ ACTIVE","mid"];
+    return ["👀 NORMAL","low"];
 }
 
+/* FETCH */
 async function load(){
 
-    document.getElementById("out").innerHTML = "Loading market data...";
+    document.getElementById("out").innerHTML="Loading...";
 
-    try {
+    try{
 
-        const res = await fetch("https://api.dexscreener.com/latest/dex/pairs/ethereum");
-        const data = await res.json();
+        const res=await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=volume_desc&per_page=25&page=1");
+        const data=await res.json();
 
-        let html = "";
+        let html="";
 
-        if(!data.pairs){
-            document.getElementById("out").innerHTML = "No data received.";
-            return;
-        }
+        data.forEach(c=>{
 
-        data.pairs.slice(0, 25).forEach(p => {
+            let s=score(c.total_volume,c.price_change_percentage_24h);
+            let l=label(s);
 
-            let name = p.baseToken?.name || "Unknown";
-            let symbol = p.baseToken?.symbol || "";
+            html+=`
+            <div class="card ${l[1]}">
+                <b>${c.name} (${c.symbol.toUpperCase()})</b>
+                <p class="small">Price: $${c.current_price}</p>
+                <p class="small">Volume: ${c.total_volume}</p>
+                <p class="small">Change: ${c.price_change_percentage_24h?.toFixed(2)}%</p>
 
-            let price = p.priceUsd || 0;
-            let volume = p.volume?.h24 || 0;
-            let change = p.priceChange?.h24 || 0;
+                <div class="badge">${l[0]}</div>
+                <p class="small">Score: ${s}/100</p>
 
-            let s = score(volume, change);
-            let lab = label(s);
-
-            html += `
-            <div class="card ${lab[1]}">
-                <b>${name} (${symbol})</b>
-                <p>Price: $${price}</p>
-                <p>Volume: ${volume}</p>
-                <p>Change: ${change}%</p>
-                <p><b>${lab[0]}</b></p>
-                <p>Score: ${s}/100</p>
+                <div class="bar">
+                    <div class="bar-fill" style="width:${s}%"></div>
+                </div>
             </div>
             `;
         });
 
-        document.getElementById("out").innerHTML = html;
+        document.getElementById("out").innerHTML=html;
 
-    } catch(e){
-        document.getElementById("out").innerHTML = "Error loading data.";
+    }catch(e){
+        document.getElementById("out").innerHTML="API error — try again";
     }
 }
 
 load();
-setInterval(load, 12000);
+setInterval(load,12000);
 
 </script>
-
-function score(volume, change){
-
-    let s = 0;
-
-    if(volume > 8000000) s += 45;
-    else if(volume > 2000000) s += 30;
-    else s += 10;
-
-    if(change > 30) s += 45;
-    else if(change > 10) s += 25;
-    else s += 10;
-
-    return Math.min(s, 100);
-}
-
-function label(s){
-    if(s >= 75) return ["🚨 BREAKOUT ZONE", "high"];
-    if(s >= 45) return ["⚠️ WATCH ZONE", "mid"];
-    return ["👀 NORMAL", "low"];
-}
-
-async function load(){
-
-    document.getElementById("out").innerHTML = "Loading market data...";
-
-    try{
-
-        const res = await fetch("https://api.dexscreener.com/latest/dex/trending");
-        const data = await res.json();
-
-        let html = "";
-
-        data.pairs.slice(0, 25).forEach(p => {
-
-            let name = p.baseToken.name;
-            let symbol = p.baseToken.symbol;
-
-            let price = p.priceUsd || 0;
-            let volume = p.volume?.h24 || 0;
-            let change = p.priceChange?.h24 || 0;
-
-            let s = score(volume, change);
-            let lab = label(s);
-
-            html += `
-            <div class="card ${lab[1]}">
-                <b>${name} (${symbol})</b>
-                <p class="small">Price: $${price}</p>
-                <p class="small">Volume: ${volume}</p>
-                <p class="small">Change: ${change}%</p>
-
-                <div class="badge">${lab[0]}</
-                <p class="small">Score: ${s}/100</p>m
 
 </body>
 </html>
