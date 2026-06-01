@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Ultra Crypto Terminal</title>
+<title>SIGMA WHALE TERMINAL</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -25,7 +25,7 @@ body{
     opacity:0.7;
 }
 
-.container{padding:10px;}
+.container{padding:10px}
 
 .card{
     margin:10px 0;
@@ -35,20 +35,19 @@ body{
     border:1px solid #1f2a44;
 }
 
-.high{border-left:5px solid #ff3b3b;}
-.mid{border-left:5px solid #ffb020;}
-.low{border-left:5px solid #2dd4bf;}
-
-.small{font-size:12px;opacity:0.8;}
+.high{border-left:5px solid #ff3b3b}
+.mid{border-left:5px solid #ffb020}
+.low{border-left:5px solid #2dd4bf}
 
 .badge{
     display:inline-block;
     padding:5px 8px;
     border-radius:6px;
     font-size:12px;
-    margin-top:6px;
     background:#1f2a44;
 }
+
+.small{font-size:12px;opacity:0.8}
 
 button{
     background:#00ff99;
@@ -71,86 +70,130 @@ button{
     height:6px;
     background:linear-gradient(90deg,#00ff99,#ff3b3b);
 }
+
+.pulse{
+    animation:pulse 1.2s infinite;
+}
+
+@keyframes pulse{
+    0%{box-shadow:0 0 0px #ff3b3b;}
+    50%{box-shadow:0 0 15px #ff3b3b;}
+    100%{box-shadow:0 0 0px #ff3b3b;}
+}
 </style>
 </head>
 
 <body>
 
-<div class="header">🚀 ULTRA CRYPTO TERMINAL</div>
-<div class="sub">Live Market • Momentum • Pump Signals</div>
+<div class="header">🧬 SIGMA WHALE TERMINAL vFINAL</div>
+<div class="sub">Live Market • Whale Proxy • Pump Detection • Smart Flow</div>
 
 <div class="center">
-<button onclick="load()">SCAN MARKET</button>
+<button onclick="load()">START SCAN</button>
 </div>
 
 <div id="out" class="container"></div>
 
 <script>
 
-/* SMART SCORING */
-function score(v,c){
-    let s=0;
+/* =========================
+   🧠 SCORING ENGINE
+========================= */
 
-    if(v>1000000000) s+=50;
-    else if(v>200000000) s+=30;
-    else s+=10;
+function score(volume, change){
 
-    if(c>50) s+=50;
-    else if(c>20) s+=30;
-    else s+=10;
+    let s = 0;
+
+    // whale proxy (volume spike)
+    if(volume > 20000000000) s += 50;
+    else if(volume > 5000000000) s += 35;
+    else if(volume > 1000000000) s += 15;
+
+    // momentum
+    if(change > 80) s += 50;
+    else if(change > 40) s += 30;
+    else if(change > 15) s += 15;
+
+    // pump detection boost
+    if(volume > 5000000000 && change > 25) s += 10;
 
     return Math.min(s,100);
 }
 
-function label(s){
-    if(s>80) return ["🚨 PUMP ZONE","high"];
-    if(s>50) return ["⚠️ ACTIVE","mid"];
-    return ["👀 NORMAL","low"];
+/* =========================
+   🚨 SIGNAL
+========================= */
+
+function signal(s){
+    if(s >= 85) return ["🚨 WHALE PUMP DETECTED","high"];
+    if(s >= 70) return ["⚠️ MOMENTUM BUILDING","mid"];
+    return ["👀 NORMAL FLOW","low"];
 }
 
-/* FETCH */
+/* =========================
+   📡 FETCH DATA
+========================= */
+
+async function fetchData(){
+    const res = await fetch("https://api.binance.com/api/v3/ticker/24hr");
+    return await res.json();
+}
+
+/* =========================
+   🚀 MAIN ENGINE
+========================= */
+
 async function load(){
 
-    document.getElementById("out").innerHTML="Loading...";
+    document.getElementById("out").innerHTML = "Scanning market...";
 
     try{
 
-        const res=await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=volume_desc&per_page=25&page=1");
-        const data=await res.json();
+        const data = await fetchData();
 
-        let html="";
+        let html = "";
 
-        data.forEach(c=>{
+        data.slice(0,30).forEach(c=>{
 
-            let s=score(c.total_volume,c.price_change_percentage_24h);
-            let l=label(s);
+            const volume = parseFloat(c.volume);
+            const change = parseFloat(c.priceChangePercent);
+            const price = parseFloat(c.lastPrice);
 
-            html+=`
-            <div class="card ${l[1]}">
-                <b>${c.name} (${c.symbol.toUpperCase()})</b>
-                <p class="small">Price: $${c.current_price}</p>
-                <p class="small">Volume: ${c.total_volume}</p>
-                <p class="small">Change: ${c.price_change_percentage_24h?.toFixed(2)}%</p>
+            const s = score(volume, change);
+            const sig = signal(s);
 
-                <div class="badge">${l[0]}</div>
+            html += `
+            <div class="card ${sig[1]} ${s>85?'pulse':''}">
+
+                <b>${c.symbol}</b>
+
+                <p class="small">Price: $${price}</p>
+                <p class="small">Volume: ${volume}</p>
+                <p class="small">Change: ${change}%</p>
+
+                <div class="badge">${sig[0]}</div>
+
                 <p class="small">Score: ${s}/100</p>
 
                 <div class="bar">
                     <div class="bar-fill" style="width:${s}%"></div>
                 </div>
+
             </div>
             `;
         });
 
-        document.getElementById("out").innerHTML=html;
+        document.getElementById("out").innerHTML = html;
 
-    }catch(e){
-        document.getElementById("out").innerHTML="API error — try again";
+    } catch(e){
+        document.getElementById("out").innerHTML = "Error loading market data";
     }
 }
 
+/* auto refresh every 10 seconds */
+setInterval(load, 10000);
+
 load();
-setInterval(load,12000);
 
 </script>
 
