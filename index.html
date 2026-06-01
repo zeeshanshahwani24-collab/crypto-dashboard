@@ -72,8 +72,80 @@ button{
 </div>
 
 <div id="out" class="container"></div>
-
 <script>
+
+function score(volume, change){
+
+    let s = 0;
+
+    if(volume > 8000000) s += 45;
+    else if(volume > 2000000) s += 30;
+    else s += 10;
+
+    if(change > 30) s += 45;
+    else if(change > 10) s += 25;
+    else s += 10;
+
+    return Math.min(s, 100);
+}
+
+function label(s){
+    if(s >= 75) return ["🚨 BREAKOUT ZONE", "high"];
+    if(s >= 45) return ["⚠️ WATCH ZONE", "mid"];
+    return ["👀 NORMAL", "low"];
+}
+
+async function load(){
+
+    document.getElementById("out").innerHTML = "Loading market data...";
+
+    try {
+
+        const res = await fetch("https://api.dexscreener.com/latest/dex/pairs/ethereum");
+        const data = await res.json();
+
+        let html = "";
+
+        if(!data.pairs){
+            document.getElementById("out").innerHTML = "No data received.";
+            return;
+        }
+
+        data.pairs.slice(0, 25).forEach(p => {
+
+            let name = p.baseToken?.name || "Unknown";
+            let symbol = p.baseToken?.symbol || "";
+
+            let price = p.priceUsd || 0;
+            let volume = p.volume?.h24 || 0;
+            let change = p.priceChange?.h24 || 0;
+
+            let s = score(volume, change);
+            let lab = label(s);
+
+            html += `
+            <div class="card ${lab[1]}">
+                <b>${name} (${symbol})</b>
+                <p>Price: $${price}</p>
+                <p>Volume: ${volume}</p>
+                <p>Change: ${change}%</p>
+                <p><b>${lab[0]}</b></p>
+                <p>Score: ${s}/100</p>
+            </div>
+            `;
+        });
+
+        document.getElementById("out").innerHTML = html;
+
+    } catch(e){
+        document.getElementById("out").innerHTML = "Error loading data.";
+    }
+}
+
+load();
+setInterval(load, 12000);
+
+</script>
 
 function score(volume, change){
 
@@ -126,23 +198,8 @@ async function load(){
                 <p class="small">Volume: ${volume}</p>
                 <p class="small">Change: ${change}%</p>
 
-                <div class="badge">${lab[0]}</div>
-                <p class="small">Score: ${s}/100</p>
-            </div>
-            `;
-        });
-
-        document.getElementById("out").innerHTML = html;
-
-    } catch(e){
-        document.getElementById("out").innerHTML = "Error loading data";
-    }
-}
-
-load();
-setInterval(load, 12000);
-
-</script>
+                <div class="badge">${lab[0]}</
+                <p class="small">Score: ${s}/100</p>m
 
 </body>
 </html>
